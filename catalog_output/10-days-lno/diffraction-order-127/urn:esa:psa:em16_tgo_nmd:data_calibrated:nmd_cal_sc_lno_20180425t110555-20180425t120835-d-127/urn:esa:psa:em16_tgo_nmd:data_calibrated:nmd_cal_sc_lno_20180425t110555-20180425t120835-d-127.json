@@ -1,3 +1,94 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:cdc38da4554f495d2603143a8fbc4cb56590ebe88a1b592281727768dfc0de14
-size 1952
+{
+  "type": "Feature",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/ssys/v1.1.0/schema.json"
+  ],
+  "id": "urn:esa:psa:em16_tgo_nmd:data_calibrated:nmd_cal_sc_lno_20180425t110555-20180425t120835-d-127",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          19.1106,
+          -72.621
+        ],
+        [
+          20.001,
+          -72.6504
+        ],
+        [
+          20.4908,
+          -72.5952
+        ],
+        [
+          20.4931,
+          -72.5878
+        ],
+        [
+          19.6051,
+          -72.5606
+        ],
+        [
+          19.1135,
+          -72.6136
+        ],
+        [
+          19.1106,
+          -72.621
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    19.1106,
+    -72.6504,
+    20.4931,
+    -72.5606
+  ],
+  "properties": {
+    "spec_ix": 209,
+    "incidence_angle": 94.147,
+    "emergence_angle": 0.946,
+    "phase_angle": 94.756,
+    "centre_latitude": -72.607,
+    "centre_longitude": 19.704,
+    "channel_temperature": -3.699,
+    "start_datetime": "2018-04-25T12:08:30.792000Z",
+    "end_datetime": "2018-04-25T12:08:33.893000Z",
+    "platform": "exomars-trace-gas-orbiter",
+    "instruments": [
+      "NOMAD"
+    ],
+    "constellation": "exomars",
+    "ssys:targets": null,
+    "ssys:local_time": "34:165.078514:17.706",
+    "ssys:target_class": null,
+    "mission": "ExoMars",
+    "datetime": "2018-04-25T12:08:30.792000Z"
+  },
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "collection",
+      "href": "../collection.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "../collection.json",
+      "type": "application/json"
+    }
+  ],
+  "assets": {
+    "dataformat": {
+      "href": "20180425_110555_1p0a_LNO_1_DF_127",
+      "type": "application/x-hdf5"
+    }
+  },
+  "collection": "diffraction-order-127"
+}
