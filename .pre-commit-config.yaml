@@ -20,6 +20,12 @@ repos:
         args:
         - --fix
     -   id: ruff-format
+-   repo: https://github.com/astral-sh/uv-pre-commit
+    # uv version.
+    rev: 0.8.17
+    hooks:
+    -   id: uv-lock
+
 ci:
     autofix_commit_msg: 🎨 [pre-commit.ci] Auto format from pre-commit.com hooks
     autoupdate_commit_msg: ⬆ [pre-commit.ci] pre-commit autoupdate
