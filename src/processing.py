@@ -118,6 +118,38 @@ class CatalogCreator:
         self.analyzer = RawDataAnalysis(folder, interm_folder)
         self.bands = bands
 
+    @staticmethod
+    def create_collection_from_slice(
+        df_slice: gpd.GeoDataFrame, collection_id: str
+    ) -> pystac.Collection:
+        # Create collection
+        spatial_extent = pystac.SpatialExtent(
+            bboxes=[df_slice.geometry.total_bounds.tolist()]
+        )
+        temporal_extent = pystac.TemporalExtent(
+            intervals=[
+                [
+                    df_slice.utc_start_time.sort_values()
+                    .head(1)
+                    .item()
+                    .to_pydatetime(),
+                    df_slice.utc_end_time.sort_values(ascending=False)
+                    .head(1)
+                    .item()
+                    .to_pydatetime(),
+                ]
+            ]
+        )
+        collection_extent = pystac.Extent(
+            spatial=spatial_extent, temporal=temporal_extent
+        )
+        return pystac.Collection(
+            id=collection_id,
+            description="Nomad LNO Samples over 2018",
+            extent=collection_extent,
+            license="CC-BY-SA-4.0",
+        )
+
     def create_catalog(
         self, self_contained: bool = True, clean_previous_output: bool = False
     ) -> pystac.Catalog:
@@ -143,36 +175,45 @@ class CatalogCreator:
         df = self.analyzer.save_to_format("lno_10_days.csv", fmt_name="csv")
         _nrows, _ = df.shape
 
-        # Create collection
-        spatial_extent = pystac.SpatialExtent(
-            bboxes=[df.geometry.total_bounds.tolist()]
-        )
-        temporal_extent = pystac.TemporalExtent(
-            intervals=[
-                [
-                    df.utc_start_time.sort_values().head(1).item().to_pydatetime(),
-                    df.utc_end_time.sort_values(ascending=False)
-                    .head(1)
-                    .item()
-                    .to_pydatetime(),
-                ]
-            ]
-        )
-        collection_extent = pystac.Extent(
-            spatial=spatial_extent, temporal=temporal_extent
-        )
-        collection = pystac.Collection(
-            id="lno-10-days-2018",
-            description="Nomad LNO Samples over 2018",
-            extent=collection_extent,
-            license="CC-BY-SA-4.0",
-        )
+        # Create main collection
+        collection = self.create_collection_from_slice(df, collection_id="10-days-lno")
 
-        for row in tqdm(df.itertuples(), total=_nrows, desc="Creating Catalog"):
-            item = self.gpd_line_to_item(row)
-            item = self.add_asset(item, row)
-            item = self.add_extensions(item, row)
-            collection.add_item(item)
+        eo = EOExtension.summaries(collection, add_if_missing=True)
+        eo.bands = self.bands
+
+        # Adding SSYS extension
+        ssys = SolSysExtension.summaries(collection, add_if_missing=True)
+        ssys.targets = ["mars"]
+        ssys.target_class = SolSysTargetClass.PLANET
+
+        # .. And Projection extension
+        proj = ProjectionExtension.summaries(collection, add_if_missing=True)
+        # proj.apply(wkt2=pyproj.CRS(default_wkt).to_wkt())
+        proj.epsg = "IAU:2015:49986"
+
+        for diff_order in df["diffraction_order"].unique():
+            sliced_df = df[df["diffraction_order"] == diff_order]
+            sub_collection = self.create_collection_from_slice(
+                sliced_df, collection_id=f"diffraction-order-{diff_order}"
+            )
+
+            subrows, _ = sliced_df.shape
+
+            # Save it for sub-collections
+            for row in tqdm(
+                sliced_df.itertuples(),
+                total=subrows,
+                desc=f"Collection (DF={diff_order})",
+            ):
+                item = self.gpd_line_to_item(row)
+                item = self.add_asset(item, row)
+                item = self.add_extensions(item, row)
+                sub_collection.add_item(item)
+
+            collection.add_child(sub_collection)
+            log.info(
+                f"Sub-collection {sub_collection.id} added to master collection {collection.id}!"
+            )
 
         # Add collection to the catalog
         catalog.add_child(collection)
@@ -190,7 +231,10 @@ class CatalogCreator:
         else:
             catalog.save(catalog_type=pystac.CatalogType.ABSOLUTE_PUBLISHED)
 
-        log.info(f"Catalog created in {time.time() - start_time}s!")
+        exec_time = time.time() - start_time
+        log.info(
+            f"Catalog created in {exec_time // 60} minutes and {exec_time % 60} seconds!"
+        )
 
         return catalog
 
@@ -206,7 +250,20 @@ class CatalogCreator:
         bbox = bounds(_line_geom).tolist()
         start_datetime_utc = df_line.utc_start_time.to_pydatetime()
         end_datetime_utc = df_line.utc_end_time.to_pydatetime()
+
+        # Use this object as a throwaway (not recommended)
+        # If you can find related extensions, use them
         properties = {}
+
+        # Place anything that doesn't fit in an extension
+        properties["spec_ix"] = df_line.spec_ix
+        properties["incidence_angle"] = df_line.incidence_angle
+        properties["emergence_angle"] = df_line.emergence_angle
+        properties["phase_angle"] = df_line.phase_angle
+        properties["centre_latitude"] = df_line.centre_latitude
+        properties["centre_longitude"] = df_line.centre_longitude
+        properties["channel_temperature"] = df_line.channel_temperature
+
         item = pystac.Item(
             id=item_id,
             geometry=footprint,
@@ -241,10 +298,6 @@ class CatalogCreator:
         """
         Calls the extensions and add them on the current object
         """
-        # adding EO extension
-        eo = EOExtension.ext(item, add_if_missing=True)
-        eo.apply(bands=self.bands)
-
         # Adding SSYS extension
         ssys = SolSysExtension.ext(item, add_if_missing=True)
 
@@ -254,56 +307,8 @@ class CatalogCreator:
         )
 
         ssys.apply(
-            targets=["mars"],
             local_time=mars_local_time,
-            target_class=SolSysTargetClass.PLANET,
         )
-
-        # .. And Projection extension
-        default_wkt = """
- PROJCRS["Mars (2015) / Ographic / Lambert Conic Conformal",                                                                                    │
-     BASEGEOGCRS["Mars (2015) / Ographic",                                                                                                      │
-         DATUM["Mars (2015)",                                                                                                                   │
-             ELLIPSOID["Mars (2015)",3396190,169.894447223612,                                                                                  │
-                 LENGTHUNIT["metre",1]],                                                                                                        │
-             ANCHOR["Viking 1 lander : 47.95137 W"]],                                                                                           │
-         PRIMEM["Reference Meridian",0,                                                                                                         │
-             ANGLEUNIT["degree",0.0174532925199433]],                                                                                           │
-         ID["IAU",49901,2015]],                                                                                                                 │
-     CONVERSION["Lambert Conic Conformal",                                                                                                      │
-         METHOD["Lambert Conic Conformal (2SP)",                                                                                                │
-             ID["EPSG",9802]],                                                                                                                  │
-         PARAMETER["Latitude of false origin",40,                                                                                               │
-             ANGLEUNIT["degree",0.0174532925199433],                                                                                            │
-             ID["EPSG",8821]],                                                                                                                  │
-         PARAMETER["Longitude of false origin",0,                                                                                               │
-             ANGLEUNIT["degree",0.0174532925199433],                                                                                            │
-             ID["EPSG",8822]],                                                                                                                  │
-         PARAMETER["Latitude of 1st standard parallel",20,                                                                                      │
-             ANGLEUNIT["degree",0.0174532925199433],                                                                                            │
-             ID["EPSG",8823]],                                                                                                                  │
-         PARAMETER["Latitude of 2nd standard parallel",60,                                                                                      │
-             ANGLEUNIT["degree",0.0174532925199433],                                                                                            │
-             ID["EPSG",8824]],                                                                                                                  │
-         PARAMETER["Easting at false origin",0,                                                                                                 │
-             LENGTHUNIT["metre",1],                                                                                                             │
-             ID["EPSG",8826]],                                                                                                                  │
-         PARAMETER["Northing at false origin",0,                                                                                                │
-             LENGTHUNIT["metre",1],                                                                                                             │
-             ID["EPSG",8827]]],                                                                                                                 │
-     CS[Cartesian,2],                                                                                                                           │
-         AXIS["westing (W)",west,                                                                                                               │
-             ORDER[1],                                                                                                                          │
-             LENGTHUNIT["metre",1]],                                                                                                            │
-         AXIS["(N)",north,                                                                                                                      │
-             ORDER[2],                                                                                                                          │
-             LENGTHUNIT["metre",1]],                                                                                                            │
-     ID["IAU",49976,2015]]
-
-"""
-        proj = ProjectionExtension.ext(item, add_if_missing=True)
-        # proj.apply(wkt2=pyproj.CRS(default_wkt).to_wkt())
-        proj.apply(wkt2=default_wkt)
 
         # Add common metadata here
         item.common_metadata.mission = "ExoMars"

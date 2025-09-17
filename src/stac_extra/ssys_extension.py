@@ -1,7 +1,11 @@
 from typing import Literal, TypeVar
 
 import pystac
-from pystac.extensions.base import ExtensionManagementMixin, PropertiesExtension
+from pystac.extensions.base import (
+    ExtensionManagementMixin,
+    PropertiesExtension,
+    SummariesExtension,
+)
 from pystac.utils import StringEnum, get_required
 
 #: Generalized version of :class:`~pystac.Item`, :class:`~pystac.Asset` or
@@ -185,3 +189,52 @@ class SolSysExtension(
             raise pystac.ExtensionTypeError(
                 f"SolSysExtension does not apply to type '{type(obj).__name__}'"
             )
+
+    @classmethod
+    def summaries(
+        cls, obj: pystac.Collection, add_if_missing: bool = False
+    ) -> "SummariesSolSysExtension":
+        """Returns the extended summaries object for the given collection."""
+        cls.ensure_has_extension(obj, add_if_missing)
+        return SummariesSolSysExtension(obj)
+
+
+class SummariesSolSysExtension(SummariesExtension):
+    """A concrete implementation of :class:`~pystac.extensions.base.SummariesExtension`
+    that extends the ``summaries`` field of a :class:`~pystac.Collection` to include
+    properties defined in the :stac-ext:`Solar System Extension <ssys>`.
+    """
+
+    @property
+    def targets(self) -> list[str] | None:
+        """Get or sets the summary of :attr:`SolSysExtension.targets` values
+        for this Collection.
+        """
+
+        return (self.summaries.get_list(TARGETS_PROPS),)
+
+    @targets.setter
+    def targets(self, v: list[str] | None) -> None:
+        self._set_summary(TARGETS_PROPS, v)
+
+    @property
+    def local_time(self) -> list[str] | None:
+        """Get or sets the summary of :attr:`SolSYsExtension.local_time` values
+        for this Collection.
+        """
+        return self.summaries.get_list(LOCAL_TIME_PROPS)
+
+    @local_time.setter
+    def local_time(self, v: list[str] | None) -> None:
+        self._set_summary(LOCAL_TIME_PROPS, v)
+
+    @property
+    def target_class(self) -> list[SolSysTargetClass] | None:
+        """Get or sets the summary of :attr:`SolSysExtension.target_class` values
+        for this Collection.
+        """
+        return self.summaries.get_list(TARGET_CLASS_PROPS)
+
+    @target_class.setter
+    def target_class(self, v: list[SolSysTargetClass] | None) -> None:
+        self._set_summary(TARGET_CLASS_PROPS, v)

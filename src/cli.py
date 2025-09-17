@@ -56,7 +56,7 @@ def create_stac_catalog(
     output_folder: Annotated[
         Optional[Path],
         typer.Option(
-            "--outpit-folder",
+            "--output-folder",
             "-O",
             exists=True,
             file_okay=False,
