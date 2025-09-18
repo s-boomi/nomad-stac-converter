@@ -6,7 +6,7 @@ from pystac.extensions.base import (
     PropertiesExtension,
     SummariesExtension,
 )
-from pystac.utils import StringEnum, get_required
+from pystac.utils import StringEnum
 
 #: Generalized version of :class:`~pystac.Item`, :class:`~pystac.Asset` or
 #: :class:`~pystac.ItemAssetDefinition`
@@ -42,7 +42,7 @@ class SolSysExtension(
 ):
     """An abstract class that can be used to extend the properties of an
     :class:`~pystac.Item` or :class:`~pystac.Asset` with properties from the
-    :stac-ext:`Solar System Extension <eo>`. This class is generic over the type of
+    :stac-ext:`Solar System Extension <ssys>`. This class is generic over the type of
     STAC Object to be extended (e.g. :class:`~pystac.Item`,
     :class:`~pystac.Asset`).
 
@@ -63,9 +63,9 @@ class SolSysExtension(
 
     def apply(
         self,
-        targets: list[str] = None,
-        local_time: str = None,
-        target_class: SolSysTargetClass = None,
+        targets: list[str] | None = None,
+        local_time: str | None = None,
+        target_class: SolSysTargetClass | None = None,
     ):
         """Applies Solar System Extension properties to the extended
         :class:`~pystac.Item` or :class:`~pystac.Asset`.
@@ -93,9 +93,7 @@ class SolSysExtension(
         Returns:
             list[str] or None
         """
-        return get_required(
-            self._get_property(TARGETS_PROPS, list[str]), self, TARGETS_PROPS
-        )
+        return self._get_property(TARGETS_PROPS, list[str])
 
     @property
     def local_time(self) -> str | None:
@@ -119,9 +117,7 @@ class SolSysExtension(
         Returns:
             str or None
         """
-        return get_required(
-            self._get_property(LOCAL_TIME_PROPS, str), self, LOCAL_TIME_PROPS
-        )
+        return self._get_property(LOCAL_TIME_PROPS, str)
 
     @property
     def target_class(self) -> SolSysTargetClass | None:
@@ -148,23 +144,19 @@ class SolSysExtension(
         Returns:
             SolSysTargetClass or None
         """
-        return get_required(
-            self._get_property(TARGET_CLASS_PROPS, SolSysTargetClass),
-            self,
-            TARGET_CLASS_PROPS,
-        )
+        return self._get_property(TARGET_CLASS_PROPS, SolSysTargetClass)
 
     @targets.setter
     def targets(self, _targets: list[str]):
-        self._set_property(TARGETS_PROPS, _targets, pop_if_none=False)
+        self._set_property(TARGETS_PROPS, _targets, pop_if_none=True)
 
     @local_time.setter
     def local_time(self, _local_time: str):
-        self._set_property(LOCAL_TIME_PROPS, _local_time, pop_if_none=False)
+        self._set_property(LOCAL_TIME_PROPS, _local_time, pop_if_none=True)
 
     @target_class.setter
     def target_class(self, _target_class: SolSysTargetClass):
-        self._set_property(TARGET_CLASS_PROPS, _target_class, pop_if_none=False)
+        self._set_property(TARGET_CLASS_PROPS, _target_class, pop_if_none=True)
 
     @classmethod
     def get_schema_uri(cls) -> str:

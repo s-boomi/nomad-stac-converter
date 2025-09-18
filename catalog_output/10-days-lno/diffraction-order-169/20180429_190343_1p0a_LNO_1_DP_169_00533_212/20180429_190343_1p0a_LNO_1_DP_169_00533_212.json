@@ -1,0 +1,91 @@
+{
+  "type": "Feature",
+  "stac_version": "1.1.0",
+  "stac_extensions": [
+    "https://stac-extensions.github.io/ssys/v1.1.0/schema.json"
+  ],
+  "id": "20180429_190343_1p0a_LNO_1_DP_169_00533_212",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          -139.7737,
+          -67.0216
+        ],
+        [
+          -139.7547,
+          -67.0211
+        ],
+        [
+          -139.8054,
+          -66.7534
+        ],
+        [
+          -140.3956,
+          -66.5158
+        ],
+        [
+          -140.4143,
+          -66.5162
+        ],
+        [
+          -140.3718,
+          -66.7842
+        ],
+        [
+          -139.7737,
+          -67.0216
+        ]
+      ]
+    ]
+  },
+  "bbox": [
+    -140.4143,
+    -67.0216,
+    -139.7547,
+    -66.5158
+  ],
+  "properties": {
+    "incidence_angle": 72.091,
+    "emergence_angle": 1.127,
+    "phase_angle": 72.222,
+    "centre_latitude": -66.805,
+    "centre_longitude": -140.041,
+    "channel_temperature": -1.946,
+    "start_datetime": "2018-04-29T20:07:00.052000Z",
+    "end_datetime": "2018-04-29T20:07:06.678000Z",
+    "platform": "exomars-trace-gas-orbiter",
+    "instruments": [
+      "NOMAD"
+    ],
+    "constellation": "exomars",
+    "ssys:local_time": "34:167.417327:12.249",
+    "mission": "ExoMars",
+    "datetime": "2018-04-29T20:07:00.052000Z"
+  },
+  "links": [
+    {
+      "rel": "root",
+      "href": "../../../catalog.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "collection",
+      "href": "../collection.json",
+      "type": "application/json"
+    },
+    {
+      "rel": "parent",
+      "href": "../collection.json",
+      "type": "application/json"
+    }
+  ],
+  "assets": {
+    "dataformat": {
+      "href": "20180429_190343_1p0a_LNO_1_DP_169",
+      "type": "application/x-hdf5"
+    }
+  },
+  "collection": "diffraction-order-169"
+}

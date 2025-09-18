@@ -43,6 +43,7 @@ class RawDataAnalysis:
         gdf = gpd.read_file(fn)
         gdf["utc_start_time"] = gdf["utc_start_time"].apply(pd.to_datetime)
         gdf["utc_end_time"] = gdf["utc_end_time"].apply(pd.to_datetime)
+        gdf["file_name"] = fn.stem
         return gdf
 
     def folder_as_geopandas(self) -> gpd.GeoDataFrame:
@@ -173,7 +174,6 @@ class CatalogCreator:
         catalog = pystac.Catalog(id=self.catalog_id, description=self.catalog_descr)
 
         df = self.analyzer.save_to_format("lno_10_days.csv", fmt_name="csv")
-        _nrows, _ = df.shape
 
         # Create main collection
         collection = self.create_collection_from_slice(df, collection_id="10-days-lno")
@@ -191,6 +191,7 @@ class CatalogCreator:
         # proj.apply(wkt2=pyproj.CRS(default_wkt).to_wkt())
         proj.epsg = "IAU:2015:49986"
 
+        # Divide by orbit number
         for diff_order in df["diffraction_order"].unique():
             sliced_df = df[df["diffraction_order"] == diff_order]
             sub_collection = self.create_collection_from_slice(
@@ -244,7 +245,7 @@ class CatalogCreator:
         Converts a line from a geopandas dataframe into a pystac item, while taking account
         of the arrangement of said line.
         """
-        item_id = df_line.psa_lid
+        item_id = f"{df_line.file_name}_{df_line.spec_ix}"
         _line_geom = df_line.geometry
         footprint = json.loads(to_geojson(_line_geom))
         bbox = bounds(_line_geom).tolist()
@@ -256,7 +257,6 @@ class CatalogCreator:
         properties = {}
 
         # Place anything that doesn't fit in an extension
-        properties["spec_ix"] = df_line.spec_ix
         properties["incidence_angle"] = df_line.incidence_angle
         properties["emergence_angle"] = df_line.emergence_angle
         properties["phase_angle"] = df_line.phase_angle
@@ -296,7 +296,7 @@ class CatalogCreator:
 
     def add_extensions(self, item: pystac.Item, data_row: NamedTuple) -> pystac.Item:
         """
-        Calls the extensions and add them on the current object
+        Calls the extensions and add them on the current pystac item
         """
         # Adding SSYS extension
         ssys = SolSysExtension.ext(item, add_if_missing=True)
