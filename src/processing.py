@@ -310,6 +310,10 @@ class CatalogCreator:
             local_time=mars_local_time,
         )
 
+        # STAC browser won't detect at the collection level
+        ssys.targets = ["mars"]
+        ssys.target_class = SolSysTargetClass.PLANET
+
         # Add common metadata here
         item.common_metadata.mission = "ExoMars"
         item.common_metadata.instruments = ["NOMAD"]
